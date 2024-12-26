@@ -1,34 +1,19 @@
-const fs = require('fs');
+const multer = require('multer');
 const path = require('path');
 
-// Utility function to handle file uploads
-const upload = (file, uploadPath) => {
-    return new Promise((resolve, reject) => {
-        // Validate file type
-        const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf']; // Add your allowed types here
-        if (!allowedTypes.includes(file.mimetype)) {
-            return reject(new Error('Invalid file type'));
-        }
+// Configure storage with destination folder and filename formatting
+const storage = multer.diskStorage({
+  destination(req, file, callback) {
+    callback(null, './images'); // Specify the destination folder for uploaded files
+  },
+  filename(req, file, callback) {
+    // Create a unique filename based on fieldname, timestamp, and original name
+    callback(null, `${file.fieldname}_${Date.now()}_${file.originalname}`);
+  },
+});
 
-        // Validate file size (5MB limit)
-        const maxSize = 5 * 1024 * 1024; // 5MB
-        if (file.size > maxSize) {
-            return reject(new Error('File size exceeds the 5MB limit'));
-        }
+// Initialize multer with the storage configuration
+const upload = multer({ storage });
 
-        // Generate a unique file name to avoid collisions (using timestamp)
-        const fileName = Date.now() + path.extname(file.name);
-        const filePath = path.join(uploadPath, fileName);
-
-        // Move the file to the specified directory
-        file.mv(filePath, (err) => {
-            if (err) {
-                reject(new Error(`File upload failed: ${err.message}`));
-            } else {
-                resolve(filePath); // Return the path of the uploaded file
-            }
-        });
-    });
-};
-
+// Export multer upload as a middleware
 module.exports = { upload };

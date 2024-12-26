@@ -1,18 +1,24 @@
-    const User = require('../Models/User');
+ 
+ 
     const jwt = require('jsonwebtoken');
-    const bcrypt = require('bcrypt');
+   
     const { checkEmailExists } = require('../middlewares/verifymiddleware');
-    const fileUploader = require('../Uploads/fileUploader');
-    const path = require('path'); // Import path module
+
+// registerUser.js (Route file)
+const bcrypt = require('bcrypt');
+const User = require('../Models/User'); 
+const Passenger = require('../Models/Passenger'); 
+const upload = require('../config/multerConfig'); // Multer config for image uploads
+const path = require('path');
+
 
     // Register a new user
     const registerUser = async (req, res) => {
         try {
             console.log(req.body);
+            console.log(req.files);
             const { name, lastname, country, email, motpasse, serie, mark, role } = req.body;
-            const imageUri = req.files?.imageUri ? req.files.imageUri : '../Uploads/userr.png'; // Default or file from the form
-            let image = req.files?.image ? await fileUploader.upload(req.files.image, '../Uploads/') : '../Uploads/userr.png'; // Default profile image
-    
+            
             // Check if email exists
             const emailExists = await checkEmailExists(email);
             if (emailExists) {
@@ -21,6 +27,8 @@
     
             // Hash the password
             const cryptedPass = await bcrypt.hash(motpasse, 10);
+            const imageUrl = req.file ? `/Uploads/${req.file.filename}` : '/Uploads/userr.png';
+            const image = req.file ? `/Uploads/${req.file.filename}` : '/Uploads/userr.png';
     
             // Create new user object
             const newUser = new User({
@@ -29,8 +37,8 @@
                 country,
                 email,
                 motpasse: cryptedPass, 
-                image,  // Profile image
-                imageUri,  // CIN image
+                image,
+                imageUri:imageUrl,
                 serie,
                 mark,
                 role
@@ -49,61 +57,72 @@
     };
     
 
-    // Login user
     const loginUser = async (req, res) => {
         try {
-            const { email, motpasse,status } = req.body;
-
+            const { email, motpasse, status } = req.body;
+    
             console.log("Login attempt:", { email, motpasse }); // Debugging log
-
-            // Check if the user exists
+    
+            // Check if the user exists (in User or Passenger model)
             const user = await User.findOne({ email });
-            if (!user) {
-                return res.status(404).json({ message: 'User not found!' });
+            const passenger = await Passenger.findOne({ email });
+            
+            if (!user && !passenger) {
+                return res.status(404).json({ message: 'User or Passenger not found!' });
             }
-
-            console.log("User found:", user); // Debugging log
-            if (status=== 'blocked'){
-                return res.status(403).json({ message: 'You do not have permission to login in your account is blocked please check the administration for more information ' });
+    
+            // If the user is blocked, prevent login
+            if (status === 'blocked') {
+                return res.status(403).json({ message: 'Account is blocked. Please contact administration for more information.' });
             }
+    
+            // Determine the user model to use (based on email match)
+            const currentUser = user ? user : passenger;
+    
+            console.log("User found:", currentUser.role); // Debugging log
+            console.log(currentUser._id);
+    
             // Validate password
-            const validPass = await bcrypt.compare(motpasse, user.motpasse);
+            const validPass = await bcrypt.compare(motpasse, currentUser.motpasse);
             if (!validPass) {
                 return res.status(401).json({ message: 'Invalid credentials!' });
             }
-
-            // Create a JWT token with role
-            const token = jwt.sign({ _id: user._id, role: user.role }, '123456789', { expiresIn: '1h' });
+    
+            // Create a JWT token with role and user information
+            const token = jwt.sign({ _id: currentUser._id, role: currentUser.role }, process.env.JWT_SECRET || 'default_secret', { expiresIn: '1h' });
             console.log("Generated Token:", token);
-            
-            // Return the user and token
-            res.status(200).json({ user, token });
+          
+
+            let redirectUrl = '/'; // Default redirect URL
+            let id=currentUser._id;
+
+             if (user && user.role === 'Driver') {
+  redirectUrl = '/Driver/HomeDriver';
+              } else if (passenger && passenger.role === 'passenger') {
+                    redirectUrl = '/Passenger/Home';
+                           }
+
+            res.json({ redirectUrl,user: currentUser,id,token,success:true }); //send data to the front
+
+         
+    
         } catch (error) {
             console.error('Error during user login:', error);
             res.status(500).json({ message: 'Server error' });
         }
     };
+    
     const updateUser = async (req, res) => {
         try {
             const userId = req.params.id; // Get user ID from URL parameters
-            const { name, lastname, email, motpasse, role } = req.body;
+            const { name, lastname, email, motpasse, } = req.body;
 
             // Find the user by ID
             let user = await User.findById(userId);
             if (!user) {
                 return res.status(404).json({ message: 'User not found!' });
             }
-
-            // Ensure the current user has permission to update roles
-            const currentUser = req.user;
-
-            // Only Superadmin can update roles to Superadmin
-            if (role === 'Superadmin' && currentUser.role !== 'Superadmin') {
-                return res
-                    .status(403)
-                    .json({ message: 'Only a Superadmin can assign the Superadmin role.' });
-            }
-
+   
             // Allow other role updates or data changes for the current user
             if (name) user.name = name;
             if (lastname) user.lastname = lastname;
@@ -116,8 +135,7 @@
                 user.email = email;
             }
             if (motpasse) user.motpasse = await bcrypt.hash(motpasse, 10); // Hash new password
-            if (role && currentUser.role === 'Superadmin') user.role = role; // Update role if provided and current user is a Superadmin
-
+            
             // Handle file upload for image
             if (req.files && req.files.image) {
                 const uploadPath = './Uploads/';
@@ -125,9 +143,9 @@
             }
 
             // Handle file upload for CIN
-            if (req.files && req.files.cin) {
+            if (req.files && req.files.imageUri) {
                 const uploadPath = './Uploads/';
-                user.cin = await fileUploader.upload(req.files.cin, uploadPath);
+                user.imageUri = await fileUploader.upload(req.files.imageUri, uploadPath);
             }
 
             // Save the updated user
