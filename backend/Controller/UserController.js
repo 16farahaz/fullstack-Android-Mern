@@ -97,7 +97,8 @@ const path = require('path');
             let id=currentUser._id;
 
              if (user && user.role === 'Driver') {
-  redirectUrl = '/Driver/HomeDriver';
+
+                redirectUrl = '/Driver/HomeDriver';
               } else if (passenger && passenger.role === 'passenger') {
                     redirectUrl = '/Passenger/Home';
                            }
