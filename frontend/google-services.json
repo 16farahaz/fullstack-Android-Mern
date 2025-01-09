@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "810015844591",
+    "project_id": "letsgoandroid-e9c3c",
+    "storage_bucket": "letsgoandroid-e9c3c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {""
+        "mobilesdk_app_id": "1:810015844591:android:6112b4d1b8c9bdfb0fd31a",
+        "android_client_info": {
+          "package_name": "com.yourapp.frontend"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "810015844591-sq9j1512hnl1n5o347cep14g6cvhjt6b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.yourapp.frontend",
+            "certificate_hash": "bc9caa4c6a5c919c676cf0f367ffd13ee30e77c2"
+          }
+        },
+        {
+          "client_id": "810015844591-51iv2vru4e2stq7ob1q1hvuf4ejpvbk3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC12mCa7DcuVbyI3QB3lIfSA0Wl8xYtdHI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "810015844591-51iv2vru4e2stq7ob1q1hvuf4ejpvbk3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
